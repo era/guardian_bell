@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package metrics_service;
+
+service Ingestion {
+  rpc put(PutRequest) returns (PutResponse) {}
+}
+
+message PutRequest {}
+message PutResponse {}
