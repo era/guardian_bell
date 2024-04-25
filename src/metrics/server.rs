@@ -1,6 +1,6 @@
 use proto::ingestion_server::{Ingestion, IngestionServer};
 use proto::{PutRequest, PutResponse};
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status};
 use tonic_health::server::HealthReporter;
 
 pub mod proto {
@@ -16,7 +16,7 @@ impl MetricsService {
         Self { health_reporter }
     }
 
-    pub async fn to_grpc(mut self) -> IngestionServer<MetricsService> {
+    pub async fn ingestion_server(mut self) -> IngestionServer<MetricsService> {
         //FIXME
         self.health_reporter
             .set_serving::<IngestionServer<MetricsService>>()
@@ -27,7 +27,7 @@ impl MetricsService {
 
 #[tonic::async_trait]
 impl Ingestion for MetricsService {
-    async fn put(&self, req: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
+    async fn put(&self, _req: Request<PutRequest>) -> Result<Response<PutResponse>, Status> {
         Ok(Response::new(PutResponse {}))
     }
 }
