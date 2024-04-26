@@ -13,7 +13,7 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), app::AppError> {
     let args = Args::parse();
     app::App::run_server(args.grpc_server_port, &args.log_path).await
 }

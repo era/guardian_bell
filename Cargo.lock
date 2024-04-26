@@ -419,6 +419,7 @@ dependencies = [
  "clap",
  "opentelemetry-proto",
  "prost",
+ "thiserror",
  "tokio",
  "tonic",
  "tonic-build",
