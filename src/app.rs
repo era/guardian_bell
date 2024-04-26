@@ -1,8 +1,18 @@
 use crate::metrics::server::MetricsService;
 use std::net::AddrParseError;
+use std::path::Path;
 use thiserror::Error;
 use tonic::transport::Server;
 use tracing::{event, Level};
+
+
+#[derive(Error, Debug)]
+pub enum AppError {
+    #[error("Invalid port")]
+    InvalidPort(#[from] AddrParseError),
+    #[error("Could not start serving the grpc on port")]
+    GrpcStartError(#[from] tonic::transport::Error),
+}
 
 /// App manages the state of the whole application
 /// including sub-services
@@ -11,7 +21,7 @@ pub struct App {}
 impl App {
     /// starts all the services belonging to the grpc server
     /// including the health_service.
-    pub async fn run_server(grpc_server_port: u16, logs_dir: &str) -> Result<(), AppError> {
+    pub async fn run_server(grpc_server_port: u16, logs_dir: &Path) -> Result<(), AppError> {
         init_tracing(logs_dir);
 
         let (health_reporter, health_service) = tonic_health::server::health_reporter();
@@ -31,15 +41,7 @@ impl App {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum AppError {
-    #[error("Invalid port")]
-    InvalidPort(#[from] AddrParseError),
-    #[error("Could not start serving the grpc on port")]
-    GrpcStartError(#[from] tonic::transport::Error),
-}
-
-fn init_tracing(logs_dir: &str) {
+fn init_tracing(logs_dir: &Path) {
     let file_appender = tracing_appender::rolling::hourly(logs_dir, "grpc_server.log");
     tracing_subscriber::fmt().with_writer(file_appender).init();
 }

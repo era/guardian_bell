@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::path::PathBuf;
 
 mod app;
 mod metrics;
@@ -9,7 +10,7 @@ struct Args {
     #[arg(short, long)]
     grpc_server_port: u16,
     #[arg(short, long)]
-    log_path: String,
+    log_path: PathBuf,
 }
 
 #[tokio::main]
