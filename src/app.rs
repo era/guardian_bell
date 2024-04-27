@@ -5,7 +5,6 @@ use thiserror::Error;
 use tonic::transport::Server;
 use tracing::{event, Level};
 
-
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Invalid port")]
