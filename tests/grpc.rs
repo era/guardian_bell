@@ -28,5 +28,5 @@ async fn health_service() {
         .await
         .unwrap();
     let client = HealthClient::new(conn);
-    // test the health service
+    // TODO: test the health service
 }
