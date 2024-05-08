@@ -3,6 +3,8 @@ use std::path::PathBuf;
 
 mod app;
 mod metrics;
+mod admin;
+mod server;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
