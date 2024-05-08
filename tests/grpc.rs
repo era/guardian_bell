@@ -24,20 +24,20 @@ async fn connect() -> Channel {
     let mut retry = 0;
     while true {
         let conn = tonic::transport::Endpoint::new("http://[::1]:8080")
-        .unwrap()
-        .connect()
-        .await;
+            .unwrap()
+            .connect()
+            .await;
         match (conn, retry) {
             (Ok(conn), _) => return conn,
             (Err(e), i) => {
-                if i <= 3 {                
+                if i <= 3 {
                     sleep(Duration::from_secs(i)).await;
                     retry = 1 + retry
                 } else {
                     panic!("could not connect {:?}", e);
                 }
-            },
-            _ => panic!("should not be possible")
+            }
+            _ => panic!("should not be possible"),
         };
     }
     panic!("impossible");

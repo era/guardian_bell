@@ -1,9 +1,9 @@
+use crate::server;
 use proto::ingestion_server::{Ingestion, IngestionServer};
 use proto::{PutRequest, PutResponse};
 use tonic::{Request, Response, Status};
 use tonic_health::server::HealthReporter;
 use tracing::instrument;
-use crate::server;
 
 pub mod proto {
     tonic::include_proto!("metrics_service");
@@ -28,12 +28,13 @@ impl MetricsService {
     }
 }
 
-
 #[tonic::async_trait]
 impl server::Administrable for MetricsService {
     async fn shutdown(&mut self) -> Result<(), server::ShutdownError> {
         let mut health_reporter = self.health_reporter.clone();
-        health_reporter.set_not_serving::<IngestionServer<MetricsService>>().await;
+        health_reporter
+            .set_not_serving::<IngestionServer<MetricsService>>()
+            .await;
 
         Ok(())
     }

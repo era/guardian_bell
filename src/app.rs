@@ -1,12 +1,12 @@
-use crate::metrics::server::MetricsService;
 use crate::admin::server::AdminService;
+use crate::metrics::server::MetricsService;
 use crate::server;
 use std::net::AddrParseError;
 use std::path::Path;
 use thiserror::Error;
-use tonic::transport::Server;
-use tokio::sync::mpsc::{Sender, Receiver};
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::{Receiver, Sender};
+use tonic::transport::Server;
 use tracing::{event, Level};
 
 #[derive(Error, Debug)]
@@ -30,10 +30,13 @@ impl App {
         // creates a channel to warn when server should shutdown
         let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel(1);
         let (health_reporter, health_service) = tonic_health::server::health_reporter();
-        
+
         let mut metrics_service = MetricsService::new(health_reporter.clone());
         let mut admin_service = AdminService::new(health_reporter.clone(), tx);
-        let services: Vec<Box<dyn server::Administrable + Send>> = vec![Box::new(metrics_service.clone()), Box::new(admin_service.clone())];
+        let services: Vec<Box<dyn server::Administrable + Send>> = vec![
+            Box::new(metrics_service.clone()),
+            Box::new(admin_service.clone()),
+        ];
         watch_server(rx, services);
 
         let addr = format!("[::1]:{0}", grpc_server_port).parse()?;
@@ -51,13 +54,15 @@ impl App {
     }
 }
 
-fn watch_server(mut shutdown_channel: Receiver<bool>, services: Vec<Box<dyn server::Administrable + Send>>) {
+fn watch_server(
+    mut shutdown_channel: Receiver<bool>,
+    services: Vec<Box<dyn server::Administrable + Send>>,
+) {
     tokio::spawn(async move {
         let _ = shutdown_channel.recv().await;
         for mut service in services {
             service.shutdown().await.unwrap(); //FIXME
         }
-         
     });
 }
 

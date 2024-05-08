@@ -1,9 +1,9 @@
 use clap::Parser;
 use std::path::PathBuf;
 
+mod admin;
 mod app;
 mod metrics;
-mod admin;
 mod server;
 
 #[derive(Parser, Debug)]

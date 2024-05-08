@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ShutdownError {
     #[error("unkown cause {0}")]
-    UnknownCause(String)
+    UnknownCause(String),
 }
 
 #[tonic::async_trait]
