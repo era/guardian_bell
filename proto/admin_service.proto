@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package admin_service;
+
+service Admin {
+  rpc shutdown(ShutdownRequest) returns (ShutdownResponse) {}
+}
+
+message ShutdownRequest {}
+message ShutdownResponse {}
