@@ -1,3 +1,7 @@
+use proto::admin_client::AdminClient;
+use proto::ShutdownRequest;
+use std::error;
+use std::sync::Once;
 use temp_dir::TempDir;
 use tokio::runtime::Handle;
 use tokio::time::sleep;
@@ -6,12 +10,20 @@ use tonic::transport::Channel;
 use tonic_health::pb::health_check_response::ServingStatus;
 use tonic_health::pb::health_client::HealthClient;
 
+pub mod proto {
+    tonic::include_proto!("admin_service");
+}
+
+static INIT: Once = Once::new();
+
 fn start_grpc_server() {
-    Handle::current().spawn(async {
-        let logs = TempDir::new().unwrap();
-        guardian_bell::app::App::run_server(8080, logs.path())
-            .await
-            .unwrap();
+    INIT.call_once(|| {
+        Handle::current().spawn(async {
+            let logs = TempDir::new().unwrap();
+            guardian_bell::app::App::run_server(8080, logs.path())
+                .await
+                .unwrap();
+        });
     });
 }
 
@@ -57,5 +69,19 @@ async fn health_service() {
     );
 }
 
-// TODO send a request to mark the node as not_serving (so we can shutdown it)
-// Test if SercingStatus return not_serving
+#[tokio::test]
+async fn shutdown_gracefully() {
+    setup().await;
+    let mut client = HealthClient::new(connect().await);
+
+    let mut admin_client = AdminClient::new(connect().await);
+    let request = tonic::Request::new(ShutdownRequest {});
+    let _ = admin_client.shutdown(request).await.unwrap();
+    // sleeps for one second to give shutdown the server in time
+    sleep(Duration::from_secs(1)).await;
+
+    // since we shutodwn the services, we are not able to receive requests anymore
+    let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest { service: "".into() });
+    let result = client.check(request).await;
+    assert!(result.is_err());
+}
