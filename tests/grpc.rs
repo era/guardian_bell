@@ -1,6 +1,5 @@
 use proto::admin_client::AdminClient;
 use proto::ShutdownRequest;
-use std::error;
 use std::sync::Once;
 use temp_dir::TempDir;
 use tokio::runtime::Handle;
@@ -34,7 +33,7 @@ async fn setup() {
 /// connects to our test server. Retries if the connection is not yet ready
 async fn connect() -> Channel {
     let mut retry = 0;
-    while true {
+    loop {
         let conn = tonic::transport::Endpoint::new("http://[::1]:8080")
             .unwrap()
             .connect()
@@ -49,10 +48,8 @@ async fn connect() -> Channel {
                     panic!("could not connect {:?}", e);
                 }
             }
-            _ => panic!("should not be possible"),
         };
     }
-    panic!("impossible");
 }
 
 #[tokio::test]
