@@ -5,6 +5,7 @@ use tokio::sync::mpsc::Sender;
 use tonic::{Request, Response, Status};
 use tonic_health::server::HealthReporter;
 use tracing::instrument;
+use tracing::{span, Level};
 
 pub mod proto {
     tonic::include_proto!("admin_service");
@@ -55,7 +56,13 @@ impl Admin for AdminService {
         &self,
         _req: Request<ShutdownRequest>,
     ) -> Result<Response<ShutdownResponse>, Status> {
-        self.tx.send(true).await.unwrap(); //FIXME
-        Ok(Response::new(ShutdownResponse {}))
+
+        match self.tx.send(true).await {
+            Ok(_) => Ok(Response::new(ShutdownResponse {})),
+            Err(e) => {
+                span!(Level::ERROR, "error while sending message to shutdown channel");
+                Err(Status::internal("error while trying to shutdown server"))
+            }
+        }
     }
 }
