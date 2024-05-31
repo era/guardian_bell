@@ -20,10 +20,9 @@ impl MetricsService {
     }
 
     pub async fn ingestion_server(&mut self) -> IngestionServer<MetricsService> {
-        //FIXME
         self.health_reporter
             .set_serving::<IngestionServer<MetricsService>>()
-            .await; // set_not_serving for unhealthy
+            .await;
         IngestionServer::new(self.clone())
     }
 }

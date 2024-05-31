@@ -25,10 +25,9 @@ impl AdminService {
     }
 
     pub async fn admin_server(&mut self) -> AdminServer<AdminService> {
-        //FIXME
         self.health_reporter
             .set_serving::<AdminServer<AdminService>>()
-            .await; // set_not_serving for unhealthy
+            .await;
         AdminServer::new(self.clone())
     }
 }

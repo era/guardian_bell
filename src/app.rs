@@ -39,7 +39,7 @@ impl App {
         ];
         watch_server(rx, services);
 
-        let addr = format!("[::1]:{0}", grpc_server_port).parse()?;
+        let addr = format!("127.0.0.1:{0}", grpc_server_port).parse()?;
 
         event!(Level::INFO, "starting grpc server");
 
@@ -72,6 +72,7 @@ fn watch_server(
                 _ => event!(Level::INFO, "shutdown service {:0} succeeded", name),
             };
         }
+        panic!("finished!");
     });
 }
 

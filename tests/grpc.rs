@@ -34,7 +34,7 @@ async fn setup() {
 async fn connect() -> Channel {
     let mut retry = 0;
     loop {
-        let conn = tonic::transport::Endpoint::new("http://[::1]:8080")
+        let conn = tonic::transport::Endpoint::new("http://127.0.0.1:8080")
             .unwrap()
             .connect()
             .await;
@@ -55,8 +55,15 @@ async fn connect() -> Channel {
 #[tokio::test]
 async fn health_service() {
     setup().await;
+    is_healthy().await;
+    shutdown_gracefully().await;
+}
+
+async fn is_healthy() {
     let mut client = HealthClient::new(connect().await);
-    let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest { service: "".into() });
+    let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest {
+        service: "admin_service.Admin".into(),
+    });
     let response = client.check(request).await.unwrap();
     let response = response.into_inner();
 
@@ -66,29 +73,19 @@ async fn health_service() {
     );
 }
 
-#[tokio::test]
 async fn shutdown_gracefully() {
-    setup().await;
     let mut client = HealthClient::new(connect().await);
 
     let mut admin_client = AdminClient::new(connect().await);
     let request = tonic::Request::new(ShutdownRequest {});
     let _ = admin_client.shutdown(request).await.unwrap();
 
-    let mut retries = 0;
-    loop {
-        // since we shutodwn the services, we are not able to receive requests anymore
-        let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest { service: "".into() });
-        let result = client.check(request).await;
-        if result.is_err() {
-            break
-        } else {
-            retries += 1;
-            // sleeps for one second to give shutdown the server in time
-            sleep(Duration::from_secs(retries)).await;
-        }
-        if retries >= 3 {
-            assert!(result.is_err()); // result should be err by now, if it's not fail the test
-        }
-    }
+    let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest {
+        service: "admin_service.Admin".into(),
+    });
+    let response = client.check(request).await.unwrap().into_inner();
+    assert_eq!(
+        ServingStatus::NotServing,
+        ServingStatus::from_i32(response.status).unwrap()
+    );
 }
