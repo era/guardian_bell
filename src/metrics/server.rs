@@ -38,6 +38,10 @@ impl server::Administrable for MetricsService {
 
         Ok(())
     }
+
+    fn service_name(&self) -> &str {
+        "MetricsService"
+    }
 }
 
 #[tonic::async_trait]

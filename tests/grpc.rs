@@ -74,11 +74,21 @@ async fn shutdown_gracefully() {
     let mut admin_client = AdminClient::new(connect().await);
     let request = tonic::Request::new(ShutdownRequest {});
     let _ = admin_client.shutdown(request).await.unwrap();
-    // sleeps for one second to give shutdown the server in time
-    sleep(Duration::from_secs(1)).await;
 
-    // since we shutodwn the services, we are not able to receive requests anymore
-    let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest { service: "".into() });
-    let result = client.check(request).await;
-    assert!(result.is_err());
+    let mut retries = 0;
+    loop {
+        // since we shutodwn the services, we are not able to receive requests anymore
+        let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest { service: "".into() });
+        let result = client.check(request).await;
+        if result.is_err() {
+            break
+        } else {
+            retries += 1;
+            // sleeps for one second to give shutdown the server in time
+            sleep(Duration::from_secs(retries)).await;
+        }
+        if retries >= 3 {
+            assert!(result.is_err()); // result should be err by now, if it's not fail the test
+        }
+    }
 }

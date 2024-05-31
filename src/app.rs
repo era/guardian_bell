@@ -61,7 +61,16 @@ fn watch_server(
     tokio::spawn(async move {
         let _ = shutdown_channel.recv().await;
         for mut service in services {
-            service.shutdown().await.unwrap(); //FIXME
+            let name = service.service_name().to_owned();
+            match service.shutdown().await {
+                Err(e) => event!(
+                    Level::ERROR,
+                    "error while shuting down service {:0} {:1}",
+                    name,
+                    e
+                ),
+                _ => event!(Level::INFO, "shutdown service {:0} succeeded", name),
+            };
         }
     });
 }

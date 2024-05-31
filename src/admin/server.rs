@@ -43,6 +43,10 @@ impl server::Administrable for AdminService {
 
         Ok(())
     }
+
+    fn service_name(&self) -> &str {
+        "AdminService"
+    }
 }
 
 #[tonic::async_trait]

@@ -9,4 +9,5 @@ pub enum ShutdownError {
 #[tonic::async_trait]
 pub trait Administrable {
     async fn shutdown(&mut self) -> Result<(), ShutdownError>;
+    fn service_name(&self) -> &str;
 }
