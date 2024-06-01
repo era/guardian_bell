@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
-opentelemetry-proto = "0.5.0"
 prost = "0.12.4"
 temp-dir = "0.1.13"
 thiserror = "1.0.59"

@@ -7,4 +7,5 @@ service Ingestion {
 }
 
 message PutRequest {}
+
 message PutResponse {}

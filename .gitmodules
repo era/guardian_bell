@@ -1,0 +1,3 @@
+[submodule "opentelemetry-proto"]
+	path = pentelemetry-proto
+	url = git@github.com:open-telemetry/opentelemetry-proto.git
