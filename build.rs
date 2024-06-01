@@ -5,7 +5,8 @@ fn main() {
     let proto_root = Path::new("proto");
     let proto_files = collect_proto_files(proto_root);
 
-    let proto_paths: Vec<&str> = proto_files.iter()
+    let proto_paths: Vec<&str> = proto_files
+        .iter()
         .map(|path| path.to_str().unwrap())
         .collect();
 

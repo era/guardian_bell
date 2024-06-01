@@ -56,11 +56,13 @@ impl Admin for AdminService {
         &self,
         _req: Request<ShutdownRequest>,
     ) -> Result<Response<ShutdownResponse>, Status> {
-
         match self.tx.send(true).await {
             Ok(_) => Ok(Response::new(ShutdownResponse {})),
             Err(_e) => {
-                span!(Level::ERROR, "error while sending message to shutdown channel");
+                span!(
+                    Level::ERROR,
+                    "error while sending message to shutdown channel"
+                );
                 Err(Status::internal("error while trying to shutdown server"))
             }
         }
