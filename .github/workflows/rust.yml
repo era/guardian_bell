@@ -16,8 +16,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install deps
-      run: sudo apt-get -y install protobuf-compiler
+    - name: Install protoc
+      run: |
+        PROTOC_VERSION=3.19.1  # Specify the version you need here
+        curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+        unzip protoc-${PROTOC_VERSION}-linux-x86_64.zip -d $HOME/protoc
+        sudo mv $HOME/protoc/bin/* /usr/local/bin/
+        sudo mv $HOME/protoc/include/* /usr/local/include/
     - name: Build
       run: cargo build --verbose
     - name: Run tests
