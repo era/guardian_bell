@@ -65,6 +65,7 @@ impl server::Administrable for MetricsService {
     }
 }
 
+//TODO stop usign our mock ingestion grpc service and start using open telemetry
 #[tonic::async_trait]
 impl Ingestion for MetricsService {
     #[instrument]
