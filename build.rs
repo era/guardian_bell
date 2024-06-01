@@ -22,7 +22,6 @@ fn collect_proto_files(dir: &Path) -> Vec<PathBuf> {
         if path.is_dir() {
             proto_files.extend(collect_proto_files(&path));
         } else if path.extension().and_then(|s| s.to_str()) == Some("proto") {
-            println!("{:?}", path);
             proto_files.push(path);
         }
     }
