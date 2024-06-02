@@ -5,6 +5,7 @@ mod admin;
 mod app;
 mod metrics;
 mod server;
+mod wal;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
