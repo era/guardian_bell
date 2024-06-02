@@ -60,7 +60,7 @@ impl Log {
 pub struct WAL {
     path: PathBuf,
     logs: Vec<Log>,
-    page: u32,
+    curr_page: u32,
 }
 
 impl WAL {
@@ -69,7 +69,7 @@ impl WAL {
         Self {
             path,
             logs: vec![],
-            page: 0,
+            curr_page: 0,
         }
     }
 
