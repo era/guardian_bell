@@ -1,4 +1,7 @@
 use std::fs::{File, OpenOptions};
+use std::io::Read;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::io::{BufReader, Error as StdIOError, Write};
 use std::path::PathBuf;
 
@@ -6,49 +9,39 @@ use std::path::PathBuf;
 pub enum Error {
     #[error("I/O error {0}")]
     IOError(#[from] StdIOError),
-}
-
-pub trait WriteAheadLog {
-    fn write(&mut self, data: &Vec<u8>) -> Result<(), Error>;
-    fn read<R>(
-        &self,
-        offset: u64,
-        buf: &mut BufReader<R>,
-        lines: u64,
-    ) -> Result<Option<u64>, Error>;
+    #[error("Page index out of range")]
+    PageIndexOutOfRange,
 }
 
 /// Log is basically a single-file WAL, it allow callers to write to the end of the file
-/// and read R bytes from any offset. If there is nothing to be read, it returns None
+/// and read X bytes from any offset. If there is nothing to be read, it returns None
 struct Log {
-    file: File,
+    writer: File,
+    reader: File,
     name: String,
 }
 
 impl Log {
     fn new(file_name: PathBuf, name: String) -> Result<Self, Error> {
-        let mut file = OpenOptions::new()
-            .read(true)
-            .append(true)
-            .open(&file_name)?;
+        let writer = OpenOptions::new().append(true).open(&file_name)?;
+        let reader = OpenOptions::new().read(true).open(&file_name)?;
 
-        Ok(Self { file, name })
+        Ok(Self {
+            writer,
+            reader,
+            name,
+        })
     }
 
     /// write data to the end of the file
     fn write(&mut self, data: &Vec<u8>) -> Result<(), Error> {
-        self.file.write_all(data)?;
+        self.writer.write_all(data)?;
         Ok(())
     }
 
-    /// R is the size of the entries on the log
-    fn read<R>(
-        &self,
-        offset: u64,
-        buf: &mut BufReader<R>,
-        lines: u64,
-    ) -> Result<Option<u64>, Error> {
-        todo!()
+    fn read(&mut self, offset: u64, buf: &mut [u8]) -> Result<usize, Error> {
+        self.reader.seek(SeekFrom::Start(offset))?;
+        Ok(self.reader.read(buf)?)
     }
 }
 
@@ -60,7 +53,7 @@ impl Log {
 pub struct WAL {
     path: PathBuf,
     logs: Vec<Log>,
-    curr_page: u32,
+    curr_page: usize,
 }
 
 impl WAL {
@@ -75,17 +68,14 @@ impl WAL {
 
     /// writes to the end of the last page
     fn write(&mut self, data: &Vec<u8>) -> Result<(), Error> {
-        todo!()
+        self.logs.get_mut(self.curr_page).unwrap().write(data)
     }
 
     /// read page starting from offset. Each page is a log file.
-    fn read<R>(
-        &self,
-        page: u32,
-        offset: u64,
-        buf: &mut BufReader<R>,
-        lines: u64,
-    ) -> Result<Option<u64>, Error> {
-        todo!()
+    fn read(&mut self, page: usize, offset: u64, buf: &mut [u8]) -> Result<usize, Error> {
+        self.logs
+            .get_mut(page)
+            .ok_or(Error::PageIndexOutOfRange)?
+            .read(offset, buf)
     }
 }
