@@ -23,7 +23,10 @@ struct Log {
 
 impl Log {
     fn new(file_name: PathBuf, name: String) -> Result<Self, Error> {
-        let writer = OpenOptions::new().append(true).open(&file_name)?;
+        let writer = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&file_name)?;
         let reader = OpenOptions::new().read(true).open(&file_name)?;
 
         Ok(Self {
@@ -34,7 +37,7 @@ impl Log {
     }
 
     /// write data to the end of the file
-    fn write(&mut self, data: &Vec<u8>) -> Result<(), Error> {
+    fn write(&mut self, data: &[u8]) -> Result<(), Error> {
         self.writer.write_all(data)?;
         Ok(())
     }
@@ -67,7 +70,7 @@ impl WAL {
     }
 
     /// writes to the end of the last page
-    fn write(&mut self, data: &Vec<u8>) -> Result<(), Error> {
+    fn write(&mut self, data: &[u8]) -> Result<(), Error> {
         self.logs.get_mut(self.curr_page).unwrap().write(data)
     }
 
@@ -77,5 +80,26 @@ impl WAL {
             .get_mut(page)
             .ok_or(Error::PageIndexOutOfRange)?
             .read(offset, buf)
+    }
+}
+#[cfg(test)]
+mod test {
+    use super::*;
+    use temp_dir::TempDir;
+
+    #[test]
+    fn read_and_write_on_log() {
+        let dir = TempDir::new().unwrap();
+        let mut log = Log::new(dir.path().join("mylog"), "test".into()).unwrap();
+        let entry = "my_entry".as_bytes();
+        log.write(&entry).unwrap();
+        let mut buf = [0; 8];
+        log.read(0, &mut buf).unwrap();
+        assert_eq!(entry, buf);
+
+        // read starting from 3
+        let mut buf = [0; 5];
+        log.read(3, &mut buf).unwrap();
+        assert_eq!("entry".as_bytes(), buf);
     }
 }
