@@ -13,8 +13,8 @@ pub enum Error {
     PageIndexOutOfRange,
 }
 
-/// Log is basically a single-file WAL, it allow callers to write to the end of the file
-/// and read X bytes from any offset. If there is nothing to be read, it returns None
+/// Log is a single-file WAL, it allows callers to write to the end of the file
+/// and read X bytes from any offset.
 struct Log {
     writer: File,
     reader: File,
@@ -50,7 +50,7 @@ impl Log {
 
 /// Implements a WAL for the application
 /// is up to the caller to handle snapshot (to reduce the disk usage, probably
-/// should create a new WAL dump the content from memory and deleting the old one), validating
+/// should create a new WAL dump the content from memory and delete the old one), validating
 /// the content of the files (e.g. making sure all entries are valid and not corrupted)
 /// and handling any indexing needed.
 pub struct WAL {
