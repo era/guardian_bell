@@ -1,3 +1,4 @@
+use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::io::Seek;
@@ -11,6 +12,8 @@ pub enum Error {
     IOError(#[from] StdIOError),
     #[error("Page index out of range")]
     PageIndexOutOfRange,
+    #[error("Error while loading logs")]
+    CorruptedLogFile,
 }
 
 /// Log is a single-file WAL, it allows callers to write to the end of the file
@@ -57,21 +60,76 @@ pub struct WAL {
     path: PathBuf,
     logs: Vec<Log>,
     curr_page: usize,
+    max_size_per_page: usize,
+}
+
+pub struct Config {
+    dir: PathBuf,
+    max_size_per_page: usize,
 }
 
 impl WAL {
-    fn new(path: PathBuf) -> Self {
-        //TODO open logs
-        Self {
-            path,
-            logs: vec![],
-            curr_page: 0,
+    const LOG_PREFIX: &'static str = "log_page_";
+
+    fn new(config: Config) -> Result<Self, Error> {
+        let mut logs = Self::find_logs(&config.dir)?;
+
+        let mut curr_page = logs.len();
+
+        if curr_page == 0 {
+            let first_log = Self::create_log(config.dir.clone(), 0)?;
+            curr_page = 1;
+            logs.push(first_log);
         }
+
+        Ok(Self {
+            path: config.dir,
+            max_size_per_page: config.max_size_per_page,
+            logs,
+            curr_page,
+        })
+    }
+
+    fn create_log(mut path: PathBuf, page: usize) -> Result<Log, Error> {
+        path.push(format!("{}{}", Self::LOG_PREFIX, page));
+        let file_name = path
+            .as_path()
+            .file_name()
+            .unwrap()
+            .to_os_string()
+            .into_string()
+            .unwrap();
+        Log::new(path, file_name)
+    }
+
+    fn find_logs(path: &PathBuf) -> Result<Vec<Log>, Error> {
+        let mut entries: Vec<_> = fs::read_dir(path)?
+            .filter_map(Result::ok)
+            .filter(|e| {
+                if let Some(file_name) = e.path().file_name().and_then(|s| s.to_str()) {
+                    e.path().is_file() && file_name.starts_with(Self::LOG_PREFIX)
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        entries.sort_by_key(|e| e.path().file_name().unwrap().to_os_string());
+
+        let mut logs = Vec::with_capacity(entries.len());
+
+        for entry in entries {
+            let name = entry.path().file_name().unwrap().to_os_string();
+            logs.push(Log::new(entry.path(), name.into_string().unwrap())?);
+        }
+
+        return Ok(logs);
     }
 
     /// writes to the end of the last page
     fn write(&mut self, data: &[u8]) -> Result<(), Error> {
-        self.logs.get_mut(self.curr_page).unwrap().write(data)
+        //TODO create new page if file is bigger than max
+        self.logs.get_mut(self.curr_page - 1).unwrap().write(data)
     }
 
     /// read page starting from offset. Each page is a log file.
@@ -101,5 +159,22 @@ mod test {
         let mut buf = [0; 5];
         log.read(3, &mut buf).unwrap();
         assert_eq!("entry".as_bytes(), buf);
+    }
+
+    #[test]
+    fn read_and_write_on_wal() {
+        let dir = TempDir::new().unwrap();
+        let mut wal = WAL::new(Config {
+            dir: dir.path().to_path_buf(),
+            max_size_per_page: 8,
+        })
+        .unwrap();
+        let entry = "my_entry".as_bytes();
+        wal.write(&entry).unwrap();
+        let mut buf = [0; 8];
+        wal.read(0, 0, &mut buf).unwrap();
+        assert_eq!(entry, buf);
+
+        //TODO test if we are changing the page correctly when we write more than the size limit
     }
 }
