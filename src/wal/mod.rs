@@ -39,15 +39,22 @@ impl Log {
         })
     }
 
-    /// write data to the end of the file
-    fn write(&mut self, data: &[u8]) -> Result<(), Error> {
+    /// write data to the end of the file. Returns the offset where the entry
+    /// starts on the file.
+    fn write(&mut self, data: &[u8]) -> Result<usize, Error> {
+        let curr_offset = self.len()?;
         self.writer.write_all(data)?;
-        Ok(())
+
+        Ok(curr_offset)
     }
 
     fn read(&mut self, offset: u64, buf: &mut [u8]) -> Result<usize, Error> {
         self.reader.seek(SeekFrom::Start(offset))?;
         Ok(self.reader.read(buf)?)
+    }
+
+    fn len(&self) -> Result<usize, Error> {
+        Ok(self.writer.metadata()?.len() as usize)
     }
 }
 
@@ -123,13 +130,21 @@ impl WAL {
             logs.push(Log::new(entry.path(), name.into_string().unwrap())?);
         }
 
-        return Ok(logs);
+        Ok(logs)
     }
 
     /// writes to the end of the last page
-    fn write(&mut self, data: &[u8]) -> Result<(), Error> {
-        //TODO create new page if file is bigger than max
-        self.logs.get_mut(self.curr_page - 1).unwrap().write(data)
+    /// returns the (page, offset) so that you can retrieve the entry later
+    fn write(&mut self, data: &[u8]) -> Result<(usize, usize), Error> {
+        if self.logs.get(self.curr_page - 1).unwrap().len()? + data.len() > self.max_size_per_page {
+            let log = Self::create_log(self.path.clone(), self.curr_page)?;
+            self.logs.push(log);
+            self.curr_page += 1;
+        }
+
+        let offset = self.logs.get_mut(self.curr_page - 1).unwrap().write(data)?;
+
+        Ok((self.curr_page - 1, offset))
     }
 
     /// read page starting from offset. Each page is a log file.
@@ -150,7 +165,10 @@ mod test {
         let dir = TempDir::new().unwrap();
         let mut log = Log::new(dir.path().join("mylog"), "test".into()).unwrap();
         let entry = "my_entry".as_bytes();
-        log.write(&entry).unwrap();
+        let result = log.write(&entry).unwrap();
+
+        assert_eq!(0 as usize, result);
+
         let mut buf = [0; 8];
         log.read(0, &mut buf).unwrap();
         assert_eq!(entry, buf);
@@ -159,6 +177,9 @@ mod test {
         let mut buf = [0; 5];
         log.read(3, &mut buf).unwrap();
         assert_eq!("entry".as_bytes(), buf);
+
+        let result = log.write(&entry).unwrap();
+        assert_eq!(8 as usize, result);
     }
 
     #[test]
@@ -170,11 +191,20 @@ mod test {
         })
         .unwrap();
         let entry = "my_entry".as_bytes();
-        wal.write(&entry).unwrap();
+        let result = wal.write(&entry).unwrap();
+        assert_eq!((0 as usize, 0 as usize), result);
+
         let mut buf = [0; 8];
         wal.read(0, 0, &mut buf).unwrap();
         assert_eq!(entry, buf);
 
-        //TODO test if we are changing the page correctly when we write more than the size limit
+        // write on second page
+        let entry = "second".as_bytes();
+        let result = wal.write(&entry).unwrap();
+        assert_eq!((1 as usize, 0 as usize), result);
+
+        let mut buf = [0; 6];
+        wal.read(1, 0, &mut buf).unwrap();
+        assert_eq!(entry, buf);
     }
 }
