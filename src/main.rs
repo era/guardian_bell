@@ -2,8 +2,10 @@ use clap::Parser;
 use std::path::PathBuf;
 
 mod admin;
+mod alarm;
 mod app;
 mod metrics;
+mod model;
 mod server;
 mod wal;
 

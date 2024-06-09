@@ -154,3 +154,7 @@ pub enum AggregationTemporality {
     /// value was reset (e.g. Prometheus).
     Cumulative,
 }
+
+/*
+ * Our own not based on OpenTelemetry
+ */
