@@ -4,13 +4,16 @@ use crate::wal::WAL;
 
 pub struct AlarmService {
     // Use wal
+    alarms: Vec<Box<dyn Alarm>>
 }
 
 impl AlarmService {
 
     fn new() -> Self {
         // TODO setup wal
-        Self {}
+        Self {
+            alarms: vec![],
+        }
     }
 
     /// Check if the metric is needed for any alarm
