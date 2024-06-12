@@ -33,10 +33,18 @@ impl AlarmService {
 
     /// Check if the metric is needed for any alarm
     /// and if so, consumes it
-    fn consume(&self, metric: metrics::Metric) -> Result<(), ()> {
+    fn consume(&mut self, metric: metrics::Metric) -> Result<(), ()> {
         // save into wal if needed
         // consume
-        todo!()
+        let mut should_save_in_wal = false;
+        for mut alarm in &mut self.alarms {
+            should_save_in_wal = alarm.consume(&metric) || should_save_in_wal
+        }
+        if should_save_in_wal {
+            // transform the metric into bytes
+            // save into wal
+        }
+        Ok(())
     }
 
     /// recover tries to recover the configuration and metrics
@@ -50,9 +58,9 @@ trait Alarm {
     /// check if should consume metric
     /// useful if you don't want to hold a &mut self just to check
     /// it
-    fn metric_matches(&self, metric: metrics::Metric) -> bool;
+    fn metric_matches(&self, metric: &metrics::Metric) -> bool;
     /// consume a new metric, metric: returns true if it consumed it
-    fn consume(&mut self, metric: metrics::Metric) -> bool;
+    fn consume(&mut self, metric: &metrics::Metric) -> bool;
     /// checks if should alarm / disable alarm and also cleans
     /// old metrics from memory
     fn tick(&mut self);
