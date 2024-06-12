@@ -67,4 +67,4 @@ trait Alarm {
 /*
  * Alarm should look something like
  *alarm {Mutex<is_alarming>, Mutex<(MetricData, CurrAlarmValue)>}
- *
+ */
