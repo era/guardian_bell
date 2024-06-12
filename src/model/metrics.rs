@@ -1,6 +1,8 @@
-use std::iter::Map;
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 
 /// Metrics is based on [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-proto/blob/v0.9.0/opentelemetry/proto/metrics/v1/metrics.proto#L141)
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Metric {
     /// name of the metric, including its DNS name prefix. It must be unique
     name: String,
@@ -13,7 +15,7 @@ pub struct Metric {
     data: MetricData,
     /// The set of key/value pairs that uniquely identify the timeseries from
     /// where this point belongs. The list may be empty (may contain 0 elements).
-    attributes: Map<String, String>,
+    attributes: HashMap<String, String>,
 }
 
 /// # Time
@@ -34,6 +36,7 @@ pub struct Metric {
 /// to support correct rate calculation.  Although it may be omitted
 /// when the start time is truly unknown, setting StartTime is
 /// strongly encouraged.
+#[derive(Serialize, Deserialize, Debug)]
 pub enum MetricData {
     /// The last bool If "true" means that the sum is monotonic.
     Sum(DataPoint, AggregationTemporality, bool),
@@ -41,6 +44,7 @@ pub enum MetricData {
     Histogram(HistogramDataPoint, AggregationTemporality),
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DataPoint {
     start_time: u64,
     time: u64,
@@ -56,6 +60,7 @@ pub struct DataPoint {
 /// If the histogram does not contain the distribution of values, then both
 /// "explicit_bounds" and "bucket_counts" must be omitted and only "count" and
 /// "sum" are known.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct HistogramDataPoint {
     start_time: u64,
     time: u64,
@@ -90,6 +95,7 @@ pub struct HistogramDataPoint {
     explicity_bouds: Box<[f64]>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub enum AggregationTemporality {
     None,
     /// DELTA is an AggregationTemporality for a metric aggregator which reports
@@ -154,7 +160,3 @@ pub enum AggregationTemporality {
     /// value was reset (e.g. Prometheus).
     Cumulative,
 }
-
-/*
- * Our own not based on OpenTelemetry
- */
