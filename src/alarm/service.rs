@@ -1,5 +1,6 @@
 use crate::model::metrics;
 use crate::wal::{Config as WALConfig, Error as WALError, WAL};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 #[derive(thiserror::Error, Debug)]
@@ -10,7 +11,7 @@ pub enum Error {
 
 pub struct AlarmService {
     wal: WAL,
-    alarms: Vec<Box<dyn Alarm>>,
+    alarms: BTreeMap<String, Box<dyn Alarm>>,
 }
 
 pub struct Config {
@@ -19,16 +20,29 @@ pub struct Config {
 }
 
 impl AlarmService {
-    fn new(config: Config) -> Result<Self, Error> {
+    fn new(config: Config, alarms: Vec<Box<dyn Alarm>>) -> Result<Self, Error> {
         let wal_config = WALConfig {
             dir: config.storage_path,
             max_size_per_page: config.max_size_per_page_wal,
         };
+
+        let mut btree = BTreeMap::new();
+
+        for alarm in alarms {
+            btree.insert(alarm.identifier(), alarm);
+        }
+
         let wal = WAL::new(wal_config)?;
-        Ok(Self {
-            wal,
-            alarms: vec![],
-        })
+        Ok(Self { wal, alarms: btree })
+    }
+
+    fn add(&mut self, alarm: Box<dyn Alarm>) {
+        // check if should update instead
+        self.alarms.insert(alarm.identifier(), alarm);
+    }
+
+    fn delete(&mut self, alarm_id: &str) {
+        todo!()
     }
 
     /// Check if the metric is needed for any alarm
@@ -37,7 +51,7 @@ impl AlarmService {
     /// otherwise we just drop it since no one is using the data.
     fn consume(&mut self, metric: metrics::Metric) -> Result<(), Error> {
         let mut should_save_in_wal = false;
-        for mut alarm in &mut self.alarms {
+        for (_, mut alarm) in &mut self.alarms {
             should_save_in_wal = alarm.consume(&metric) || should_save_in_wal
         }
         if should_save_in_wal {
@@ -62,6 +76,9 @@ trait Alarm {
     /// checks if should alarm / disable alarm and also cleans
     /// old metrics from memory
     fn tick(&self);
+
+    // returns the alarm identifier
+    fn identifier(&self) -> String;
 }
 
 /*
