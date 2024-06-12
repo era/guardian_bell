@@ -7,6 +7,8 @@ use std::path::PathBuf;
 pub enum Error {
     #[error("Error while setting up WAL {0}")]
     WALError(#[from] WALError),
+    #[error("Could not serialize object {0}")]
+    SerializeError(#[from] serde_json::Error),
 }
 
 pub struct AlarmService {
@@ -37,12 +39,11 @@ impl AlarmService {
     }
 
     fn add(&mut self, alarm: Box<dyn Alarm>) {
-        // check if should update instead
         self.alarms.insert(alarm.identifier(), alarm);
     }
 
-    fn delete(&mut self, alarm_id: &str) {
-        todo!()
+    fn delete(&mut self, alarm_id: &str) -> bool {
+        self.alarms.remove(alarm_id).is_some()
     }
 
     /// Check if the metric is needed for any alarm
@@ -56,11 +57,18 @@ impl AlarmService {
         }
         if should_save_in_wal {
             //TODO for now using json, but in the future we should use something better
-            // FIXME: handle errors
-            let serialized = serde_json::to_vec(&metric).unwrap();
+            let serialized = serde_json::to_vec(&metric)?;
             self.wal.write(&serialized)?;
         }
         Ok(())
+    }
+
+    /// checks if any alarm should alarm / disable alarm and also cleans
+    /// old metrics from memory
+    fn tick(&self) {
+        for (_, alarm) in &self.alarms {
+            alarm.tick();
+        }
     }
 
     /// recover tries to recover the configuration and metrics
@@ -73,11 +81,12 @@ impl AlarmService {
 trait Alarm {
     /// consume a new metric, metric: returns true if it consumed it
     fn consume(&self, metric: &metrics::Metric) -> bool;
+
     /// checks if should alarm / disable alarm and also cleans
     /// old metrics from memory
     fn tick(&self);
 
-    // returns the alarm identifier
+    /// returns the alarm identifier
     fn identifier(&self) -> String;
 }
 
