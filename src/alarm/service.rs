@@ -13,11 +13,16 @@ pub struct AlarmService {
     alarms: Vec<Box<dyn Alarm>>,
 }
 
+pub struct Config {
+    pub max_size_per_page_wal: usize,
+    pub storage_path: PathBuf,
+}
+
 impl AlarmService {
-    fn new(storage_path: PathBuf, max_size_per_page_wal: usize) -> Result<Self, Error> {
+    fn new(config: Config) -> Result<Self, Error> {
         let wal_config = WALConfig {
-            dir: storage_path,
-            max_size_per_page: max_size_per_page_wal,
+            dir: config.storage_path,
+            max_size_per_page: config.max_size_per_page_wal,
         };
         let wal = WAL::new(wal_config)?;
         Ok(Self {
