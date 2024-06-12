@@ -1,6 +1,6 @@
 use crate::model::metrics;
 use crate::wal::{Config as WALConfig, Error as WALError, WAL};
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(thiserror::Error, Debug)]
@@ -11,7 +11,7 @@ pub enum Error {
 
 pub struct AlarmService {
     wal: WAL,
-    alarms: BTreeMap<String, Box<dyn Alarm>>,
+    alarms: HashMap<String, Box<dyn Alarm>>,
 }
 
 pub struct Config {
@@ -26,14 +26,14 @@ impl AlarmService {
             max_size_per_page: config.max_size_per_page_wal,
         };
 
-        let mut btree = BTreeMap::new();
+        let mut map = HashMap::new();
 
         for alarm in alarms {
-            btree.insert(alarm.identifier(), alarm);
+            map.insert(alarm.identifier(), alarm);
         }
 
         let wal = WAL::new(wal_config)?;
-        Ok(Self { wal, alarms: btree })
+        Ok(Self { wal, alarms: map })
     }
 
     fn add(&mut self, alarm: Box<dyn Alarm>) {
