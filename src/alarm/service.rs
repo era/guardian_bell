@@ -32,10 +32,10 @@ impl AlarmService {
     }
 
     /// Check if the metric is needed for any alarm
-    /// and if so, consumes it
+    /// and if so, consumes it.
+    /// Any metric that is used by an alarm is saved into our WAL,
+    /// otherwise we just drop it since no one is using the data.
     fn consume(&mut self, metric: metrics::Metric) -> Result<(), Error> {
-        // save into wal if needed
-        // consume
         let mut should_save_in_wal = false;
         for mut alarm in &mut self.alarms {
             should_save_in_wal = alarm.consume(&metric) || should_save_in_wal
