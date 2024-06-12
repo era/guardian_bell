@@ -25,7 +25,6 @@ pub enum Aggregation {
     Min,
 }
 
-
 impl AlarmConfig {
     fn metric_matches(&self, metric: Metric) -> bool {
         todo!()

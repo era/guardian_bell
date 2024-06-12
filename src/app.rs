@@ -1,7 +1,6 @@
 use crate::admin::server::AdminService;
 use crate::metrics::server::MetricsService;
 use crate::server;
-use crate::wal;
 use std::net::AddrParseError;
 use std::path::Path;
 use thiserror::Error;

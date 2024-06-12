@@ -71,14 +71,14 @@ pub struct WAL {
 }
 
 pub struct Config {
-    dir: PathBuf,
-    max_size_per_page: usize,
+    pub dir: PathBuf,
+    pub max_size_per_page: usize,
 }
 
 impl WAL {
     const LOG_PREFIX: &'static str = "log_page_";
 
-    fn new(config: Config) -> Result<Self, Error> {
+    pub fn new(config: Config) -> Result<Self, Error> {
         let mut logs = Self::find_logs(&config.dir)?;
 
         let mut curr_page = logs.len();

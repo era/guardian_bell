@@ -1,19 +1,29 @@
 use crate::model::metrics;
-use crate::wal::WAL;
+use crate::wal::{Config as WALConfig, Error as WALError, WAL};
+use std::path::PathBuf;
 
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Error while setting up WAL {0}")]
+    WALError(#[from] WALError),
+}
 
 pub struct AlarmService {
-    // Use wal
-    alarms: Vec<Box<dyn Alarm>>
+    wal: WAL,
+    alarms: Vec<Box<dyn Alarm>>,
 }
 
 impl AlarmService {
-
-    fn new() -> Self {
-        // TODO setup wal
-        Self {
+    fn new(storage_path: PathBuf, max_size_per_page_wal: usize) -> Result<Self, Error> {
+        let wal_config = WALConfig {
+            dir: storage_path,
+            max_size_per_page: max_size_per_page_wal,
+        };
+        let wal = WAL::new(wal_config)?;
+        Ok(Self {
+            wal,
             alarms: vec![],
-        }
+        })
     }
 
     /// Check if the metric is needed for any alarm
@@ -29,7 +39,6 @@ impl AlarmService {
     fn recover(&mut self) -> Result<(), ()> {
         todo!()
     }
-
 }
 
 trait Alarm {
@@ -43,4 +52,3 @@ trait Alarm {
     /// old metrics from memory
     fn tick(&mut self);
 }
-
