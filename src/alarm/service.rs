@@ -33,7 +33,7 @@ impl AlarmService {
 
     /// Check if the metric is needed for any alarm
     /// and if so, consumes it
-    fn consume(&mut self, metric: metrics::Metric) -> Result<(), ()> {
+    fn consume(&mut self, metric: metrics::Metric) -> Result<(), Error> {
         // save into wal if needed
         // consume
         let mut should_save_in_wal = false;
@@ -41,15 +41,17 @@ impl AlarmService {
             should_save_in_wal = alarm.consume(&metric) || should_save_in_wal
         }
         if should_save_in_wal {
-            // transform the metric into bytes
-            // save into wal
+            //TODO for now using json, but in the future we should use something better
+            // FIXME: handle errors
+            let serialized = serde_json::to_vec(&metric).unwrap();
+            self.wal.write(&serialized)?;
         }
         Ok(())
     }
 
     /// recover tries to recover the configuration and metrics
     /// from disk in case of a restart
-    fn recover(&mut self) -> Result<(), ()> {
+    fn recover(&mut self) -> Result<(), Error> {
         todo!()
     }
 }

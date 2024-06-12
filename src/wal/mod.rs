@@ -135,7 +135,7 @@ impl WAL {
 
     /// writes to the end of the last page
     /// returns the (page, offset) so that you can retrieve the entry later
-    fn write(&mut self, data: &[u8]) -> Result<(usize, usize), Error> {
+    pub fn write(&mut self, data: &[u8]) -> Result<(usize, usize), Error> {
         if self.logs.get(self.curr_page - 1).unwrap().len()? + data.len() > self.max_size_per_page {
             let log = Self::create_log(self.path.clone(), self.curr_page)?;
             self.logs.push(log);
@@ -148,7 +148,7 @@ impl WAL {
     }
 
     /// read page starting from offset. Each page is a log file.
-    fn read(&mut self, page: usize, offset: u64, buf: &mut [u8]) -> Result<usize, Error> {
+    pub fn read(&mut self, page: usize, offset: u64, buf: &mut [u8]) -> Result<usize, Error> {
         self.logs
             .get_mut(page)
             .ok_or(Error::PageIndexOutOfRange)?
