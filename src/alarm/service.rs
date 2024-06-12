@@ -57,13 +57,14 @@ impl AlarmService {
 }
 
 trait Alarm {
-    /// check if should consume metric
-    /// useful if you don't want to hold a &mut self just to check
-    /// it
-    fn metric_matches(&self, metric: &metrics::Metric) -> bool;
     /// consume a new metric, metric: returns true if it consumed it
-    fn consume(&mut self, metric: &metrics::Metric) -> bool;
+    fn consume(&self, metric: &metrics::Metric) -> bool;
     /// checks if should alarm / disable alarm and also cleans
     /// old metrics from memory
-    fn tick(&mut self);
+    fn tick(&self);
 }
+
+/*
+ * Alarm should look something like
+ *alarm {Mutex<is_alarming>, Mutex<(MetricData, CurrAlarmValue)>}
+ *
