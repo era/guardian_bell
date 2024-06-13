@@ -148,11 +148,16 @@ impl WAL {
     }
 
     /// read page starting from offset. Each page is a log file.
+    /// if usize = 0 there was nothing to be read.
     pub fn read(&mut self, page: usize, offset: u64, buf: &mut [u8]) -> Result<usize, Error> {
         self.logs
             .get_mut(page)
             .ok_or(Error::PageIndexOutOfRange)?
             .read(offset, buf)
+    }
+
+    pub fn last_page(&self) -> usize {
+        self.curr_page
     }
 }
 #[cfg(test)]

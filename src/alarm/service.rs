@@ -35,7 +35,11 @@ impl AlarmService {
         }
 
         let wal = WAL::new(wal_config)?;
-        Ok(Self { wal, alarms: map })
+        let mut service = Self { wal, alarms: map };
+
+        service.recover()?;
+
+        Ok(service)
     }
 
     fn add(&mut self, alarm: Box<dyn Alarm>) {
@@ -74,6 +78,8 @@ impl AlarmService {
     /// recover tries to recover the configuration and metrics
     /// from disk in case of a restart
     fn recover(&mut self) -> Result<(), Error> {
+        // start from page 0, offset 0 and keep walking until
+        // we reach the end
         todo!()
     }
 }
