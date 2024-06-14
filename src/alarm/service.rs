@@ -9,6 +9,8 @@ pub enum Error {
     WALError(#[from] WALError),
     #[error("Could not serialize object {0}")]
     SerializeError(#[from] serde_json::Error),
+    #[error("Invalid entry in log {0}")]
+    InvalidEntryInLog(#[from] std::str::Utf8Error),
 }
 
 pub struct AlarmService {
@@ -61,8 +63,11 @@ impl AlarmService {
         }
         if should_save_in_wal {
             //TODO for now using json, but in the future we should use something better
-            let serialized = serde_json::to_vec(&metric)?;
-            self.wal.write(&serialized)?;
+            let mut serialized = serde_json::to_vec(&metric)?;
+            let mut data = vec![];
+            data.extend_from_slice(&serialized.len().to_ne_bytes());
+            data.append(&mut serialized);
+            self.wal.write(&data)?;
         }
         Ok(())
     }
@@ -78,9 +83,38 @@ impl AlarmService {
     /// recover tries to recover the configuration and metrics
     /// from disk in case of a restart
     fn recover(&mut self) -> Result<(), Error> {
-        // start from page 0, offset 0 and keep walking until
-        // we reach the end
-        todo!()
+        if self.wal.last_page() == 0 {
+            return Ok(());
+        }
+        loop {
+            let mut page = 0;
+            let mut offset = 0;
+            let mut size = [0 as u8; 8];
+            let read = self.wal.read(page, offset, &mut size)?;
+
+            if read == 0 {
+                page += 1;
+                offset = 0;
+                continue;
+            } else {
+                // should always be 8
+                offset += read as u64;
+            }
+
+            if page == self.wal.last_page() {
+                break;
+            }
+
+            let mut entry = Vec::with_capacity(usize::from_ne_bytes(size));
+            let read = self.wal.read(page, offset, &mut entry)?;
+            offset += read as u64;
+
+            let metric: metrics::Metric = serde_json::from_str(std::str::from_utf8(&entry)?)?;
+
+            self.consume(metric)?;
+        }
+
+        Ok(())
     }
 }
 
