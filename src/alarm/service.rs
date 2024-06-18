@@ -119,7 +119,6 @@ impl AlarmService {
             offset += read as u64;
             let metric: metrics::Metric = serde_json::from_str(std::str::from_utf8(&entry)?)?;
 
-            println!("{} = {} = {}", page, size, offset);
             let _ = self.consume(metric, true)?;
         }
 
