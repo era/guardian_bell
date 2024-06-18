@@ -18,6 +18,7 @@ pub struct AlarmService {
     alarms: HashMap<String, Box<dyn Alarm>>,
 }
 
+#[derive(Clone)]
 pub struct Config {
     pub max_size_per_page_wal: usize,
     pub storage_path: PathBuf,
@@ -56,12 +57,12 @@ impl AlarmService {
     /// and if so, consumes it.
     /// Any metric that is used by an alarm is saved into our WAL,
     /// otherwise we just drop it since no one is using the data.
-    fn consume(&mut self, metric: metrics::Metric) -> Result<(), Error> {
+    fn consume(&mut self, metric: metrics::Metric, recover_mode: bool) -> Result<(), Error> {
         let mut should_save_in_wal = false;
         for (_, mut alarm) in &mut self.alarms {
             should_save_in_wal = alarm.consume(&metric) || should_save_in_wal
         }
-        if should_save_in_wal {
+        if should_save_in_wal && !recover_mode {
             //TODO for now using json, but in the future we should use something better
             let mut serialized = serde_json::to_vec(&metric)?;
             let mut data = vec![];
@@ -86,11 +87,15 @@ impl AlarmService {
         if self.wal.is_empty_wal() {
             return Ok(());
         }
+        let mut page = 0;
+        let mut offset = 0;
+        let mut size = [0 as u8; 8];
         loop {
-            let mut page = 0;
-            let mut offset = 0;
-            let mut size = [0 as u8; 8];
-            let read = self.wal.read(page, offset, &mut size)?;
+            let read = match self.wal.read(page, offset, &mut size) {
+                Ok(read) => read,
+                Err(WALError::PageIndexOutOfRange) => break,
+                Err(e) => return Err(Error::WALError(e)),
+            };
 
             if read == 0 {
                 page += 1;
@@ -101,17 +106,21 @@ impl AlarmService {
                 offset += read as u64;
             }
 
-            if page == self.wal.last_page() {
-                break;
+            let size = usize::from_ne_bytes(size);
+
+            let mut entry = Vec::with_capacity(size);
+
+            //FIXME work around, check if there is a better way
+            for i in 0..size {
+                entry.push(0);
             }
 
-            let mut entry = Vec::with_capacity(usize::from_ne_bytes(size));
             let read = self.wal.read(page, offset, &mut entry)?;
             offset += read as u64;
-
             let metric: metrics::Metric = serde_json::from_str(std::str::from_utf8(&entry)?)?;
 
-            self.consume(metric)?;
+            println!("{} = {} = {}", page, size, offset);
+            let _ = self.consume(metric, true)?;
         }
 
         Ok(())
@@ -128,6 +137,10 @@ trait Alarm {
 
     /// returns the alarm identifier
     fn identifier(&self) -> String;
+
+    /// returns all metrics used in the alarm. Only for tests,
+    /// may not be kept in production to reduce memory usage.
+    fn metrics(&self) -> Vec<metrics::Metric>;
 }
 
 /*
@@ -156,6 +169,10 @@ mod test {
         fn identifier(&self) -> String {
             "AlarmForTest".to_string()
         }
+
+        fn metrics(&self) -> Vec<metrics::Metric> {
+            self.metrics.lock().unwrap().clone()
+        }
     }
 
     fn fake_metric() -> metrics::Metric {
@@ -182,7 +199,7 @@ mod test {
             storage_path: path.path().to_owned(),
         };
         let mut alarm_service = AlarmService::new(
-            config,
+            config.clone(),
             vec![Box::new(ConsumeAllMetricsAlarm {
                 metrics: Mutex::new(vec![]),
             })],
@@ -191,8 +208,36 @@ mod test {
 
         let number_of_metrics = 3;
 
-        for i in (0..number_of_metrics) {
-            let _ = alarm_service.consume(fake_metric());
+        for i in 0..number_of_metrics {
+            let _ = alarm_service.consume(fake_metric(), false);
         }
+        assert_eq!(
+            3,
+            alarm_service
+                .alarms
+                .get("AlarmForTest")
+                .unwrap()
+                .metrics()
+                .len()
+        );
+        drop(alarm_service);
+
+        let mut alarm_service = AlarmService::new(
+            config.clone(),
+            vec![Box::new(ConsumeAllMetricsAlarm {
+                metrics: Mutex::new(vec![]),
+            })],
+        )
+        .unwrap();
+
+        assert_eq!(
+            3,
+            alarm_service
+                .alarms
+                .get("AlarmForTest")
+                .unwrap()
+                .metrics()
+                .len()
+        );
     }
 }
