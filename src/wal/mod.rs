@@ -159,6 +159,14 @@ impl WAL {
     pub fn last_page(&self) -> usize {
         self.curr_page
     }
+
+    pub fn curr_page_size(&self) -> usize {
+        self.logs.get(self.curr_page - 1).unwrap().len().unwrap()
+    }
+
+    pub fn is_empty_wal(&self) -> bool {
+        self.last_page() == 1 && self.curr_page_size() == 0
+    }
 }
 #[cfg(test)]
 mod test {

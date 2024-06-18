@@ -83,7 +83,7 @@ impl AlarmService {
     /// recover tries to recover the configuration and metrics
     /// from disk in case of a restart
     fn recover(&mut self) -> Result<(), Error> {
-        if self.wal.last_page() == 0 {
+        if self.wal.is_empty_wal() {
             return Ok(());
         }
         loop {
@@ -139,6 +139,7 @@ trait Alarm {
 mod test {
     use super::*;
     use std::sync::Mutex;
+    use temp_dir::TempDir;
 
     struct ConsumeAllMetricsAlarm {
         metrics: Mutex<Vec<metrics::Metric>>,
@@ -156,12 +157,30 @@ mod test {
             "AlarmForTest".to_string()
         }
     }
+
+    fn fake_metric() -> metrics::Metric {
+        todo!()
+    }
+
     #[test]
     fn alarm_service_correctly_handles_consume() {
         // for this to be true it must call the alarms to consume the data
         // and if consumed it should write to the WAL.
         // after dropping and restarting the service we should get back the same state as before
+        let path = TempDir::new().unwrap();
+        let config = Config {
+            max_size_per_page_wal: 500,
+            storage_path: path.path().to_owned(),
+        };
+        let mut alarm_service = AlarmService::new(
+            config,
+            vec![Box::new(ConsumeAllMetricsAlarm {
+                metrics: Mutex::new(vec![]),
+            })],
+        );
 
+        let number_of_metrics = 3;
 
+        for i in (0..number_of_metrics) {}
     }
 }
