@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Metrics is based on [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-proto/blob/v0.9.0/opentelemetry/proto/metrics/v1/metrics.proto#L141)
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metric {
     /// name of the metric, including its DNS name prefix. It must be unique
     name: String,
@@ -36,7 +36,7 @@ pub struct Metric {
 /// to support correct rate calculation.  Although it may be omitted
 /// when the start time is truly unknown, setting StartTime is
 /// strongly encouraged.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum MetricData {
     /// The last bool If "true" means that the sum is monotonic.
     Sum(DataPoint, AggregationTemporality, bool),
@@ -44,7 +44,7 @@ pub enum MetricData {
     Histogram(HistogramDataPoint, AggregationTemporality),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DataPoint {
     start_time: u64,
     time: u64,
@@ -60,7 +60,7 @@ pub struct DataPoint {
 /// If the histogram does not contain the distribution of values, then both
 /// "explicit_bounds" and "bucket_counts" must be omitted and only "count" and
 /// "sum" are known.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HistogramDataPoint {
     start_time: u64,
     time: u64,
@@ -95,7 +95,7 @@ pub struct HistogramDataPoint {
     explicity_bouds: Box<[f64]>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AggregationTemporality {
     None,
     /// DELTA is an AggregationTemporality for a metric aggregator which reports

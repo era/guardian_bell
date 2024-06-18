@@ -134,3 +134,34 @@ trait Alarm {
  * Alarm should look something like
  *alarm {Mutex<is_alarming>, Mutex<(MetricData, CurrAlarmValue)>}
  */
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::sync::Mutex;
+
+    struct ConsumeAllMetricsAlarm {
+        metrics: Mutex<Vec<metrics::Metric>>,
+    }
+
+    impl Alarm for ConsumeAllMetricsAlarm {
+        fn consume(&self, metric: &metrics::Metric) -> bool {
+            self.metrics.lock().unwrap().push(metric.clone());
+            true
+        }
+        fn tick(&self) {
+            //no_op
+        }
+        fn identifier(&self) -> String {
+            "AlarmForTest".to_string()
+        }
+    }
+    #[test]
+    fn alarm_service_correctly_handles_consume() {
+        // for this to be true it must call the alarms to consume the data
+        // and if consumed it should write to the WAL.
+        // after dropping and restarting the service we should get back the same state as before
+
+
+    }
+}
