@@ -5,17 +5,17 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metric {
     /// name of the metric, including its DNS name prefix. It must be unique
-    name: String,
+    pub name: String,
     /// unit in which the metric value is reported. Follows the format
     /// described by http://unitsofmeasure.org/ucum.html
-    unit: String,
+    pub unit: String,
     /// Data determines the aggregation type (if any) of the metric, what is the
     /// reported value type for the data points, as well as the relatationship to
     /// the time interval over which they are reported.
-    data: MetricData,
+    pub data: MetricData,
     /// The set of key/value pairs that uniquely identify the timeseries from
     /// where this point belongs. The list may be empty (may contain 0 elements).
-    attributes: HashMap<String, String>,
+    pub attributes: HashMap<String, String>,
 }
 
 /// # Time
@@ -46,9 +46,9 @@ pub enum MetricData {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DataPoint {
-    start_time: u64,
-    time: u64,
-    value: f64,
+    pub start_time: u64,
+    pub time: u64,
+    pub value: f64,
 }
 /// HistogramDataPoint is a single data point in a timeseries that describes the
 /// time-varying values of a Histogram of double values. A Histogram contains
@@ -62,22 +62,22 @@ pub struct DataPoint {
 /// "sum" are known.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HistogramDataPoint {
-    start_time: u64,
-    time: u64,
+    pub start_time: u64,
+    pub time: u64,
     /// count is the number of values in the population. Must be non-negative. This
     /// value must be equal to the sum of the "count" fields in buckets if a
     /// histogram is provided.
-    count: u64,
+    pub count: u64,
     /// sum of the values in the population. If count is zero then this field
     /// must be zero. This value must be equal to the sum of the "sum" fields in
     /// buckets if a histogram is provided.
-    sum: f64,
+    pub sum: f64,
 
     /// bucket_counts is an optional field contains the count values of histogram
     /// for each bucket.
     ///
     /// The sum of the bucket_counts must equal the value in the count field.
-    bucket_counts: Box<[u64]>,
+    pub bucket_counts: Box<[u64]>,
     /// explicit_bounds specifies buckets with explicitly defined bounds for values.
     ///
     /// This defines size(explicit_bounds) + 1 (= N) buckets. The boundaries for
@@ -92,7 +92,7 @@ pub struct HistogramDataPoint {
     /// Histogram buckets are inclusive of their upper boundary, except the last
     /// bucket where the boundary is at infinity. This format is intentionally
     /// compatible with the OpenMetrics histogram definition.
-    explicity_bouds: Box<[f64]>,
+    pub explicity_bouds: Box<[f64]>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

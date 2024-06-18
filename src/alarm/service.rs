@@ -159,7 +159,16 @@ mod test {
     }
 
     fn fake_metric() -> metrics::Metric {
-        todo!()
+        metrics::Metric {
+            name: "MetricName".to_string(),
+            unit: "rqs".to_string(),
+            data: metrics::MetricData::Gauge(metrics::DataPoint {
+                start_time: 0,
+                time: 0,
+                value: 0.1,
+            }),
+            attributes: HashMap::new(),
+        }
     }
 
     #[test]
@@ -177,10 +186,13 @@ mod test {
             vec![Box::new(ConsumeAllMetricsAlarm {
                 metrics: Mutex::new(vec![]),
             })],
-        );
+        )
+        .unwrap();
 
         let number_of_metrics = 3;
 
-        for i in (0..number_of_metrics) {}
+        for i in (0..number_of_metrics) {
+            let _ = alarm_service.consume(fake_metric());
+        }
     }
 }
