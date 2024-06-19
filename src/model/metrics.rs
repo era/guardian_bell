@@ -13,6 +13,8 @@ pub struct Metric {
     /// reported value type for the data points, as well as the relatationship to
     /// the time interval over which they are reported.
     pub data: MetricData,
+    /// Time when this metric was send.
+    pub time: u64,
     /// The set of key/value pairs that uniquely identify the timeseries from
     /// where this point belongs. The list may be empty (may contain 0 elements).
     pub attributes: HashMap<String, String>,

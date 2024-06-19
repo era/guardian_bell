@@ -26,7 +26,7 @@ pub enum Aggregation {
 }
 
 impl AlarmConfig {
-    fn metric_matches(&self, metric: Metric) -> bool {
+    pub fn metric_matches(&self, metric: &Metric) -> bool {
         todo!()
     }
 }

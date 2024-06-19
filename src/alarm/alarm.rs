@@ -1,4 +1,5 @@
-use crate::model::metrics;
+use crate::model::{alarm::AlarmConfig, metrics};
+use std::collections::BTreeMap;
 use std::sync::Mutex;
 
 pub(crate) trait Alarm {
@@ -17,18 +18,38 @@ pub(crate) trait Alarm {
     fn metrics(&self) -> Vec<metrics::Metric>;
 }
 
-pub enum Comp {
-    GreaterOrEqual,
-    Greater,
-    LessOrEqual,
-    Less,
-}
-
 pub struct MaxAlarm {
     id: String,
-    limit: f64,
-    comp: Comp,
-    metrics: Mutex<Vec<metrics::Metric>>,
+    config: AlarmConfig,
+    // later when we need to delete old entries:
+    // https://stackoverflow.com/questions/35663342/how-to-modify-partially-remove-a-range-from-a-btreemap
+    metrics: Mutex<BTreeMap<u64, metrics::Metric>>,
     is_alarming: Mutex<bool>,
-    time_window_duration: i64,
+    time_window_duration: u64,
+}
+
+impl Alarm for MaxAlarm {
+    fn consume(&self, metric: &metrics::Metric) -> bool {
+        if self.config.metric_matches(metric) {
+            self.metrics
+                .lock()
+                .unwrap()
+                .insert(metric.time, metric.clone());
+            true
+        } else {
+            false
+        }
+    }
+
+    fn tick(&self) {
+        todo!()
+    }
+
+    fn identifier(&self) -> String {
+        self.id.clone()
+    }
+
+    fn metrics(&self) -> Vec<metrics::Metric> {
+        todo!()
+    }
 }

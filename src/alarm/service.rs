@@ -169,6 +169,7 @@ mod test {
                 value: 0.1,
             }),
             attributes: HashMap::new(),
+            time: 0,
         }
     }
 
