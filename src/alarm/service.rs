@@ -1,3 +1,4 @@
+use crate::alarm::alarm::Alarm;
 use crate::model::metrics;
 use crate::wal::{Config as WALConfig, Error as WALError, WAL};
 use std::collections::HashMap;
@@ -124,22 +125,6 @@ impl AlarmService {
 
         Ok(())
     }
-}
-
-trait Alarm {
-    /// consume a new metric, metric: returns true if it consumed it
-    fn consume(&self, metric: &metrics::Metric) -> bool;
-
-    /// checks if should alarm / disable alarm and also cleans
-    /// old metrics from memory
-    fn tick(&self);
-
-    /// returns the alarm identifier
-    fn identifier(&self) -> String;
-
-    /// returns all metrics used in the alarm. Only for tests,
-    /// may not be kept in production to reduce memory usage.
-    fn metrics(&self) -> Vec<metrics::Metric>;
 }
 
 /*
