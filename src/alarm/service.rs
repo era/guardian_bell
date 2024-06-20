@@ -60,7 +60,7 @@ impl AlarmService {
     /// otherwise we just drop it since no one is using the data.
     fn consume(&mut self, metric: metrics::Metric, recover_mode: bool) -> Result<(), Error> {
         let mut should_save_in_wal = false;
-        for (_, mut alarm) in &mut self.alarms {
+        for (_, alarm) in &mut self.alarms {
             should_save_in_wal = alarm.consume(&metric) || should_save_in_wal
         }
         if should_save_in_wal && !recover_mode {
@@ -112,7 +112,7 @@ impl AlarmService {
             let mut entry = Vec::with_capacity(size);
 
             //FIXME work around, check if there is a better way
-            for i in 0..size {
+            for _i in 0..size {
                 entry.push(0);
             }
 

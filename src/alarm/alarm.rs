@@ -1,4 +1,5 @@
 use crate::model::{alarm::AlarmConfig, metrics};
+use chrono::{DateTime, TimeDelta, Utc};
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
@@ -25,7 +26,6 @@ pub struct MaxAlarm {
     // https://stackoverflow.com/questions/35663342/how-to-modify-partially-remove-a-range-from-a-btreemap
     metrics: Mutex<BTreeMap<u64, metrics::Metric>>,
     is_alarming: Mutex<bool>,
-    time_window_duration: u64,
 }
 
 impl Alarm for MaxAlarm {
@@ -42,6 +42,24 @@ impl Alarm for MaxAlarm {
     }
 
     fn tick(&self) {
+        let oldest_possible_metric =
+            Utc::now().checked_sub_signed(TimeDelta::minutes(self.config.time_window));
+        let mut metrics = self.metrics.lock().unwrap();
+        let mut max = -1.0;
+
+        // remove entries that are not relevant for our alarm
+        metrics.retain(|&k, _| DateTime::from_timestamp_millis(k as i64) > oldest_possible_metric);
+
+        for (_, value) in metrics.iter() {
+            match &value.data {
+                metrics::MetricData::Gauge(data) => max = f64::max(max, data.value),
+                _ => todo!(),
+            }
+        }
+        //TODO compare the max with the current limit and alarm if needed
+    }
+
+    fn alarm(&self) {
         todo!()
     }
 

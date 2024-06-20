@@ -1,17 +1,17 @@
 use crate::model::metrics::Metric;
 
 pub struct AlarmConfig {
-    matchers: Box<[Match]>,
-    agg: Aggregation,
-    value: f64,
-    // size of the window in miliseconds
-    time_window: f64,
+    pub matchers: Box<[Match]>,
+    pub agg: Aggregation,
+    pub value: f64,
+    // size of the window in minutes
+    pub time_window: i64,
 }
 
 pub struct Match {
-    attribute: String,
-    match_type: MatchType,
-    value: String,
+    pub attribute: String,
+    pub match_type: MatchType,
+    pub value: String,
 }
 
 pub enum MatchType {
