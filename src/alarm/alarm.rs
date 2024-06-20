@@ -59,10 +59,6 @@ impl Alarm for MaxAlarm {
         //TODO compare the max with the current limit and alarm if needed
     }
 
-    fn alarm(&self) {
-        todo!()
-    }
-
     fn identifier(&self) -> String {
         self.id.clone()
     }
