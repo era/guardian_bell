@@ -4,8 +4,16 @@ pub struct AlarmConfig {
     pub matchers: Box<[Match]>,
     pub agg: Aggregation,
     pub value: f64,
+    pub value_comp: ThresholdType,
     // size of the window in minutes
     pub time_window: i64,
+}
+
+pub enum ThresholdType {
+    Eq,
+    NotEq,
+    LessThan,
+    GreaterThan,
 }
 
 pub struct Match {

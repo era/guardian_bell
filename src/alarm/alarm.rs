@@ -1,7 +1,7 @@
-use crate::model::{alarm::AlarmConfig, metrics};
+use crate::model::{alarm::Aggregation, alarm::AlarmConfig, alarm::ThresholdType, metrics};
 use chrono::{DateTime, TimeDelta, Utc};
 use std::collections::BTreeMap;
-use std::sync::Mutex;
+use std::sync::{atomic::AtomicBool, atomic::Ordering, Mutex};
 
 pub(crate) trait Alarm {
     /// consume a new metric, metric: returns true if it consumed it
@@ -19,16 +19,19 @@ pub(crate) trait Alarm {
     fn metrics(&self) -> Vec<metrics::Metric>;
 }
 
-pub struct MaxAlarm {
-    id: String,
-    config: AlarmConfig,
-    // later when we need to delete old entries:
-    // https://stackoverflow.com/questions/35663342/how-to-modify-partially-remove-a-range-from-a-btreemap
-    metrics: Mutex<BTreeMap<u64, metrics::Metric>>,
-    is_alarming: Mutex<bool>,
+pub trait Notifier {
+    fn notify(&self, description: String);
 }
 
-impl Alarm for MaxAlarm {
+pub struct DataPointAlarm {
+    id: String,
+    config: AlarmConfig,
+    metrics: Mutex<BTreeMap<u64, metrics::Metric>>,
+    is_alarming: AtomicBool,
+    notifier: Box<dyn Notifier>,
+}
+
+impl Alarm for DataPointAlarm {
     fn consume(&self, metric: &metrics::Metric) -> bool {
         if self.config.metric_matches(metric) {
             self.metrics
@@ -41,22 +44,53 @@ impl Alarm for MaxAlarm {
         }
     }
 
+    //TODO we need a configuration for the alarm to become green
+    // because we may want to alarm with 5 data points, and only mark
+    // green after 10 data points
     fn tick(&self) {
         let oldest_possible_metric =
             Utc::now().checked_sub_signed(TimeDelta::minutes(self.config.time_window));
         let mut metrics = self.metrics.lock().unwrap();
-        let mut max = -1.0;
+        let mut should_alarm = true;
 
         // remove entries that are not relevant for our alarm
         metrics.retain(|&k, _| DateTime::from_timestamp_millis(k as i64) > oldest_possible_metric);
 
         for (_, value) in metrics.iter() {
-            match &value.data {
-                metrics::MetricData::Gauge(data) => max = f64::max(max, data.value),
+            let mut alarm_val = -1.0;
+            let value = match &value.data {
+                metrics::MetricData::Gauge(data) => data.value,
                 _ => todo!(),
-            }
+            };
+            alarm_val = match self.config.agg {
+                Aggregation::Max => f64::max(alarm_val, value),
+                Aggregation::Min => f64::min(alarm_val, value),
+                Aggregation::Avg => value + alarm_val,
+            };
+
+            alarm_val = match self.config.agg {
+                Aggregation::Avg => alarm_val / metrics.len() as f64,
+                _ => alarm_val,
+            };
+
+            // we should only alarm if all data points within
+            // this time window are infringing the threshold.
+            should_alarm &= match self.config.value_comp {
+                ThresholdType::Eq => alarm_val == self.config.value,
+                ThresholdType::NotEq => alarm_val != self.config.value,
+                ThresholdType::LessThan => alarm_val < self.config.value,
+                ThresholdType::GreaterThan => alarm_val > self.config.value,
+            };
         }
-        //TODO compare the max with the current limit and alarm if needed
+
+        if should_alarm {
+            // https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html
+            self.is_alarming.store(true, Ordering::Relaxed);
+            self.notifier.notify(
+                //TODO
+                "should configure how to build this string later".to_string(),
+            );
+        }
     }
 
     fn identifier(&self) -> String {
