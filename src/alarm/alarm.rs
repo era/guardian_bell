@@ -23,10 +23,22 @@ pub trait Notifier {
     fn notify(&self, description: String);
 }
 
+pub struct NoOpNotifier {}
+impl Notifier for NoOpNotifier {
+    fn notify(&self, description: String) {
+        // no_op
+    }
+}
+
+// uses other alarms as base
+// alarm if A and B are alarming
+pub struct CombinationAlarm {}
+
 pub struct DataPointAlarm {
     id: String,
     config: AlarmConfig,
-    metrics: Mutex<BTreeMap<u64, metrics::Metric>>,
+    //btreemap of time(round by minute), (quantity_of_metrics, aggregated_value)
+    metrics: Mutex<BTreeMap<u64, (u64, f64)>>,
     is_alarming: AtomicBool,
     notifier: Box<dyn Notifier>,
 }
@@ -34,10 +46,24 @@ pub struct DataPointAlarm {
 impl Alarm for DataPointAlarm {
     fn consume(&self, metric: &metrics::Metric) -> bool {
         if self.config.metric_matches(metric) {
+            let value = match &metric.data {
+                metrics::MetricData::Gauge(data) => data.value,
+                _ => todo!(),
+            };
             self.metrics
                 .lock()
+                // TODO make sure time is always round to the minute
                 .unwrap()
-                .insert(metric.time, metric.clone());
+                .entry(metric.time)
+                .and_modify(|v| {
+                    v.1 = match self.config.agg {
+                        Aggregation::Max => f64::max(v.1, value),
+                        Aggregation::Min => f64::min(v.1, value),
+                        Aggregation::Avg => value + v.1,
+                    };
+                    v.0 += 1;
+                })
+                .or_insert((1, value));
             true
         } else {
             false
@@ -56,21 +82,10 @@ impl Alarm for DataPointAlarm {
         // remove entries that are not relevant for our alarm
         metrics.retain(|&k, _| DateTime::from_timestamp_millis(k as i64) > oldest_possible_metric);
 
-        for (_, value) in metrics.iter() {
-            let mut alarm_val = -1.0;
-            let value = match &value.data {
-                metrics::MetricData::Gauge(data) => data.value,
-                _ => todo!(),
-            };
-            alarm_val = match self.config.agg {
-                Aggregation::Max => f64::max(alarm_val, value),
-                Aggregation::Min => f64::min(alarm_val, value),
-                Aggregation::Avg => value + alarm_val,
-            };
-
-            alarm_val = match self.config.agg {
-                Aggregation::Avg => alarm_val / metrics.len() as f64,
-                _ => alarm_val,
+        for (_, datapoint) in metrics.iter() {
+            let alarm_val = match self.config.agg {
+                Aggregation::Avg => datapoint.1 / datapoint.0 as f64,
+                _ => datapoint.1,
             };
 
             // we should only alarm if all data points within
