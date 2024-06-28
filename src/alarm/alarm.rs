@@ -1,4 +1,4 @@
-use crate::model::{alarm::Aggregation, alarm::AlarmConfig, alarm::ThresholdType, metrics};
+use crate::model::{alarm::Aggregation, alarm::TagBasedAlarmConfig, alarm::ThresholdType, metrics};
 use chrono::{DateTime, TimeDelta, Utc};
 use std::collections::BTreeMap;
 use std::sync::{atomic::AtomicBool, atomic::Ordering, Mutex};
@@ -36,7 +36,7 @@ pub struct CombinationAlarm {}
 
 pub struct DataPointAlarm {
     id: String,
-    config: AlarmConfig,
+    config: TagBasedAlarmConfig,
     //btreemap of time(round by minute), (quantity_of_metrics, aggregated_value)
     metrics: Mutex<BTreeMap<u64, (u64, f64)>>,
     is_alarming: AtomicBool,
