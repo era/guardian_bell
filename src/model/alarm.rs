@@ -1,7 +1,8 @@
 use crate::model::metrics::Metric;
 
-pub struct AlarmConfig {
-    pub alarm_type: AlarmType,
+pub enum AlarmConfig {
+    Combination(CombinationAlarmConfig),
+    TagBased(TagBasedAlarmConfig),
 }
 
 pub struct TagBasedAlarmConfig {
@@ -14,20 +15,15 @@ pub struct TagBasedAlarmConfig {
 }
 
 pub struct CombinationAlarmConfig {
-    // TODO time_window maybe
     pub alarms: AlarmLogicalOperator,
+    pub time_window: i64,
 }
 
 pub enum AlarmLogicalOperator {
-    Identity(Box<AlarmConfig>),
+    Identity(Box<TagBasedAlarmConfig>),
     And(Box<AlarmLogicalOperator>),
     Or(Box<AlarmLogicalOperator>),
     Not(Box<AlarmLogicalOperator>),
-}
-
-pub enum AlarmType {
-    Combination(CombinationAlarmConfig), //TODO
-    TagBased(TagBasedAlarmConfig),
 }
 
 pub enum ThresholdType {

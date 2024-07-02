@@ -127,11 +127,6 @@ impl AlarmService {
     }
 }
 
-/*
- * Alarm should look something like
- *alarm {Mutex<is_alarming>, Mutex<(MetricData, CurrAlarmValue)>}
- */
-
 #[cfg(test)]
 mod test {
     use super::*;
