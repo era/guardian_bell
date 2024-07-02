@@ -76,6 +76,11 @@ pub trait Matcher {
     fn metric_matches(&self, metric: &Metric) -> bool;
 }
 
+impl Matcher for AlarmLogicalOperator {
+    fn metric_matches(&self, metric: &Metric) -> bool {
+        todo!()
+    }
+}
 impl Matcher for TagBasedAlarmConfig {
     fn metric_matches(&self, metric: &Metric) -> bool {
         todo!()
