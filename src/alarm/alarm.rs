@@ -1,4 +1,7 @@
-use crate::model::{alarm::Aggregation, alarm::TagBasedAlarmConfig, alarm::ThresholdType, metrics};
+use crate::model::{
+    alarm::Aggregation, alarm::CombinationAlarmConfig, alarm::Matcher, alarm::TagBasedAlarmConfig,
+    alarm::ThresholdType, metrics,
+};
 use chrono::{DateTime, TimeDelta, Utc};
 use std::collections::BTreeMap;
 use std::sync::{atomic::AtomicBool, atomic::Ordering, Mutex};
@@ -32,7 +35,12 @@ impl Notifier for NoOpNotifier {
 
 // uses other alarms as base
 // alarm if A and B are alarming
-pub struct CombinationAlarm {}
+pub struct CombinationAlarm {
+    id: String,
+    config: CombinationAlarmConfig, //TODO this won't really work, we need DataPointAlarm pointers
+    is_alarming: AtomicBool,
+    notifier: Box<dyn Notifier>,
+}
 
 pub struct DataPointAlarm {
     id: String,
