@@ -44,9 +44,9 @@ pub enum LogicalOperator<I> {
     /// The item itself
     Identity(Box<I>),
     /// And logical operator
-    And(Box<AlarmLogicalOperator>),
+    And(Box<AlarmLogicalOperator>, Box<AlarmLogicalOperator>),
     /// Or logical Operator
-    Or(Box<AlarmLogicalOperator>),
+    Or(Box<AlarmLogicalOperator>, Box<AlarmLogicalOperator>),
     /// Not logical Operator
     Not(Box<AlarmLogicalOperator>),
 }
