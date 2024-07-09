@@ -37,9 +37,12 @@ pub struct CombinationAlarmConfig {
 }
 
 /// Represents our alarm logical operators (so that we can aggregate alarms)
-pub enum AlarmLogicalOperator {
-    /// An alarm itself
-    Identity(Box<TagBasedAlarmConfig>),
+pub type AlarmLogicalOperator = LogicalOperator<TagBasedAlarmConfig>;
+
+/// Generic LogicalOperator
+pub enum LogicalOperator<I> {
+    /// The item itself
+    Identity(Box<I>),
     /// And logical operator
     And(Box<AlarmLogicalOperator>),
     /// Or logical Operator
